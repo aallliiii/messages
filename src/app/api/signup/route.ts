@@ -2,7 +2,9 @@ import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/models/User";
 import bcrypt from "bcryptjs";
 import { sendVerificationEmail } from "@/helpers/sendVerificationEmail";
-import { request } from "http";
+
+// Ensure Response is imported correctly
+import { NextResponse } from "next/server"; // Adjust this import based on your setup
 
 export async function POST(req: Request) {
   await dbConnect();
@@ -10,13 +12,16 @@ export async function POST(req: Request) {
   try {
     const { username, email, password } = await req.json();
 
+    // Debug statement
+    console.log("Received data:", { username, email, password });
+
     const existingUserVerifiedByUsername = await UserModel.findOne({
       username: username,
       isVerified: true,
     });
 
     if (existingUserVerifiedByUsername) {
-      return Response.json(
+      return NextResponse.json(
         {
           success: false,
           message: "Username is already taken",
@@ -33,7 +38,7 @@ export async function POST(req: Request) {
     const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
     if (existingUserByEmail) {
       if (existingUserByEmail.isVerified) {
-        return Response.json(
+        return NextResponse.json(
           {
             success: false,
             message: "User already exists with this email",
@@ -70,9 +75,10 @@ export async function POST(req: Request) {
     }
 
     const emailSend = await sendVerificationEmail(username, email, verifyCode);
+    console.log(emailSend);
 
     if (!emailSend.success) {
-      return Response.json(
+      return NextResponse.json(
         {
           success: false,
           message: emailSend.message,
@@ -83,18 +89,19 @@ export async function POST(req: Request) {
       );
     }
 
-    return Response.json(
+    return NextResponse.json(
       {
         success: true,
         message: "User registered successfully. Please verify your email",
       },
       {
-        status: 500,
+        status: 200, // Changed to 200 for success
       }
     );
   } catch (error) {
-    console.log(error);
-    return Response.json(
+    console.log("Error:", error); // Log full error
+
+    return NextResponse.json(
       {
         success: false,
         message: "Error registering user",
